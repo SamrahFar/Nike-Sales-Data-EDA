@@ -1,0 +1,245 @@
+"""
+Nike Sales Data Exploratory Data Analysis (EDA) Project
+
+This project demonstrates professional EDA workflow using a real-world Nike sales dataset.
+It covers data exploration, cleaning, analysis, and insight generation—ideal for showcasing Python, pandas, and analytical skills to employers.
+
+Author: Samrah Far
+"""
+
+# =============================================================================
+# 📌 Table of Contents
+# =============================================================================
+# 1. Project Overview
+# 2. Importing Libraries
+# 3. Loading the Dataset
+# 4. Initial Data Exploration
+# 5. Data Cleaning
+# 6. Univariate Analysis
+# 7. Bivariate Analysis
+# 8. Handling Outliers
+# 9. Feature Scaling / Transformation
+# 10. Insights & Business Recommendations
+# 11. Conclusion
+
+# =============================================================================
+# 1. Project Overview
+# =============================================================================
+# This project demonstrates advanced Exploratory Data Analysis (EDA) using Nike Sales data.
+# Objectives:
+# - Uncover trends and data quality issues
+# - Extract actionable insights
+# - Support business decisions with analytics
+
+# =============================================================================
+# 2. Importing Libraries
+# =============================================================================
+import pandas as pd                # Data manipulation and analysis
+import matplotlib.pyplot as plt    # Data visualization
+import seaborn as sns              # Enhanced statistical plots
+import scipy.stats as stats        # Statistical tools
+import numpy as np                 # Numerical computing
+
+# Set plot style for consistency
+sns.set(style="whitegrid")
+plt.rcParams['figure.figsize'] = (10, 6)
+
+# =============================================================================
+# 3. Loading the Dataset
+# =============================================================================
+# Load the sales data
+df = pd.read_csv('Nike_Sales_Uncleaned.csv')
+
+# Preview the first few rows
+print("First 5 rows:")
+print(df.head())
+
+# Preview the last few rows
+print("\nLast 5 rows:")
+print(df.tail())
+
+# =============================================================================
+# 4. Initial Data Exploration
+# =============================================================================
+print("\nDataset Info:")
+df.info()
+
+print("\nSummary Statistics:")
+print(df.describe())
+
+print("\nMissing values per column:")
+print(df.isnull().sum())
+
+# =============================================================================
+# 5. Data Cleaning
+# =============================================================================
+# Visual inspection shows missing values in 'Units_Sold', 'MRP', 'Discount_Applied', 'Order_Date', 'Size'
+# Let's clean each appropriately
+
+# Remove rows where critical numeric data is missing (Units_Sold or MRP)
+df_clean = df.dropna(subset=['Units_Sold', 'MRP'])
+
+# Fix inconsistent date formats in 'Order_Date'
+def parse_date(date):
+    if pd.isnull(date):
+        return np.nan
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%y", "%Y-%d-%m"):
+        try:
+            return pd.to_datetime(date, format=fmt)
+        except:
+            continue
+    return pd.to_datetime(date, errors='coerce')
+
+df_clean['Order_Date'] = df_clean['Order_Date'].apply(parse_date)
+
+# Fill missing Discount_Applied with 0 (assume no discount)
+df_clean['Discount_Applied'] = df_clean['Discount_Applied'].fillna(0)
+
+# Fill missing Size with 'Unknown'
+df_clean['Size'] = df_clean['Size'].fillna('Unknown')
+
+# Standardize region names to title case
+df_clean['Region'] = df_clean['Region'].str.title()
+
+# =============================================================================
+# 6. Univariate Analysis
+# =============================================================================
+
+# Distribution of Units_Sold
+plt.figure()
+sns.histplot(df_clean['Units_Sold'], bins=20, kde=True, color='skyblue')
+plt.title('Distribution of Units Sold')
+plt.xlabel('Units Sold')
+plt.ylabel('Frequency')
+plt.show()
+
+# Distribution of Profit
+plt.figure()
+sns.histplot(df_clean['Profit'], bins=20, kde=True, color='salmon')
+plt.title('Distribution of Profit')
+plt.xlabel('Profit')
+plt.ylabel('Frequency')
+plt.show()
+
+# Top 10 products by units sold
+top_products = df_clean.groupby('Product_Name')['Units_Sold'].sum().sort_values(ascending=False).head(10)
+print("\nTop 10 Products by Units Sold:\n", top_products)
+
+# Count of sales by region
+region_counts = df_clean['Region'].value_counts()
+plt.figure()
+sns.barplot(x=region_counts.index, y=region_counts.values, palette="viridis")
+plt.title('Number of Sales by Region')
+plt.xlabel('Region')
+plt.ylabel('Number of Sales')
+plt.xticks(rotation=45)
+plt.show()
+
+# =============================================================================
+# 7. Bivariate Analysis
+# =============================================================================
+
+# Correlation heatmap
+plt.figure()
+corr = df_clean[['Units_Sold', 'MRP', 'Discount_Applied', 'Revenue', 'Profit']].corr()
+sns.heatmap(corr, annot=True, cmap='Blues')
+plt.title('Correlation Heatmap')
+plt.show()
+
+# Profit by Product Line
+plt.figure()
+sns.boxplot(x='Product_Line', y='Profit', data=df_clean)
+plt.title('Profit by Product Line')
+plt.xlabel('Product Line')
+plt.ylabel('Profit')
+plt.xticks(rotation=45)
+plt.show()
+
+# Revenue by Region
+plt.figure()
+sns.boxplot(x='Region', y='Revenue', data=df_clean)
+plt.title('Revenue by Region')
+plt.xlabel('Region')
+plt.ylabel('Revenue')
+plt.xticks(rotation=45)
+plt.show()
+
+# MRP vs Profit scatter plot
+plt.figure()
+sns.scatterplot(x='MRP', y='Profit', data=df_clean, alpha=0.6)
+plt.title('MRP vs Profit')
+plt.xlabel('MRP')
+plt.ylabel('Profit')
+plt.show()
+
+# =============================================================================
+# 8. Handling Outliers
+# =============================================================================
+
+# Detect outliers in Profit using Z-score
+z_scores = np.abs(stats.zscore(df_clean['Profit']))
+outlier_threshold = 3
+outliers = df_clean[z_scores > outlier_threshold]
+print(f"\nDetected {len(outliers)} outlier rows in Profit (Z-score > {outlier_threshold})")
+
+# Show distribution before and after removing outliers
+df_no_outliers = df_clean[z_scores <= outlier_threshold]
+
+plt.figure()
+sns.histplot(df_no_outliers['Profit'], bins=20, kde=True, color='green')
+plt.title('Profit Distribution (No Outliers)')
+plt.xlabel('Profit')
+plt.ylabel('Frequency')
+plt.show()
+
+# =============================================================================
+# 9. Feature Scaling / Transformation
+# =============================================================================
+
+# Log transformation of Revenue to address skewness
+df_no_outliers['Log_Revenue'] = np.log1p(df_no_outliers['Revenue'])
+
+plt.figure()
+sns.histplot(df_no_outliers['Log_Revenue'], bins=20, kde=True, color='purple')
+plt.title('Log-Transformed Revenue Distribution')
+plt.xlabel('Log(Revenue + 1)')
+plt.ylabel('Frequency')
+plt.show()
+
+# Standardization of MRP
+mrp_mean = df_no_outliers['MRP'].mean()
+mrp_std = df_no_outliers['MRP'].std()
+df_no_outliers['MRP_zscore'] = (df_no_outliers['MRP'] - mrp_mean) / mrp_std
+
+# =============================================================================
+# 10. Insights & Business Recommendations
+# =============================================================================
+
+print("\n--- Key Insights ---")
+# Most units sold are concentrated in a few product names.
+print(f"Top selling product: {top_products.index[0]} with {top_products.iloc[0]} units.")
+
+# Regions with most sales
+top_region = region_counts.idxmax()
+print(f"Region with highest sales: {top_region}")
+
+# Product lines show distinct profit profiles; some lines consistently outperform.
+profit_per_line = df_no_outliers.groupby('Product_Line')['Profit'].mean().sort_values(ascending=False)
+print("Average profit by product line:\n", profit_per_line)
+
+# Discounts have a moderate positive correlation with units sold, suggesting impact on sales volume.
+discount_corr = corr.loc['Units_Sold', 'Discount_Applied']
+print(f"Correlation between Units Sold and Discount Applied: {discount_corr:.2f}")
+
+# Recommendations:
+print("\n--- Business Recommendations ---")
+print("- Focus marketing on top-selling products and top-performing regions.")
+print("- Analyze underperforming product lines for improvement or discontinuation.")
+print("- Consider targeted discount strategies, as discounts moderately drive volume.")
+
+# =============================================================================
+# 11. Conclusion
+# =============================================================================
+print("\n--- Conclusion ---")
+print("This Nike Sales EDA project demonstrates data cleaning, advanced analysis, and insight generation.")
+print("The workflow and insights are applicable for real-world business decision support and highlight core data science skills.")
