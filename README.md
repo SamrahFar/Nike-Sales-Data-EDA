@@ -18,10 +18,10 @@ Nike-Sales-EDA/
 │
 ├── Nike_Sales_Data_Cleaning_and_EDA.ipynb  # Main Jupyter notebook for cleaning and EDA
 ├── Nike_Sales_Uncleaned.csv                # Raw sales dataset
-├── README.md                               # Project overview and instructions
 ├── EXECUTIVE_SUMMARY.md                    # Standalone executive summary of the project
+├── README.md                               # Project overview and instructions
 ├── requirements.txt                        # (Optional) Python dependencies
-└── assets/                                 # (Optional) Folder for images/plots/outputs
+
 ```
 
 ---
